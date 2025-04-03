@@ -152,15 +152,12 @@ threshold = st.sidebar.slider(
 if "debug_logs" not in st.session_state:
     st.session_state["debug_logs"] = ""
 
-
 def debug_log(msg: str):
     st.session_state["debug_logs"] += msg + "\n"
-
 
 st.sidebar.header("Depurador (Terminal)")
 st.sidebar.text_area("Logs", st.session_state["debug_logs"], height=300)
 debug_log(f"Threshold definido: {threshold}")
-
 
 # ================== CARREGAMENTO DO MODELO ==================
 @st.cache_resource(show_spinner=False)
@@ -170,9 +167,7 @@ def load_model():
     debug_log("Modelo carregado com sucesso!")
     return model_
 
-
 model = load_model()
-
 
 # ================== FUNÇÃO DE PRÉ-PROCESSAMENTO ==================
 def preprocess_image(img, target_size=(180, 180)):
@@ -187,7 +182,6 @@ def preprocess_image(img, target_size=(180, 180)):
     debug_log("Imagem pré-processada e normalizada.")
     return img_array
 
-
 # ================== CLASSE PARA CAPTURA DE CÂMERA ==================
 class VideoTransformer(VideoTransformerBase):
     def __init__(self):
@@ -197,7 +191,6 @@ class VideoTransformer(VideoTransformerBase):
         img = frame.to_ndarray(format="bgr24")
         self.frame = img
         return img
-
 
 # ================== LAYOUT PRINCIPAL ==================
 st.title("Diagnóstico de Pneumonia por Radiografia")
@@ -236,10 +229,9 @@ if modo == "Upload de Imagem":
             debug_log(f"Erro durante o processamento (upload): {str(e)}")
 
 elif modo == "Captura pela Câmera":
-    st.write(
-        "Clique em 'Iniciar Câmera' para ativar a câmera e em 'Capturar Imagem' para tirar uma foto. (Apenas a câmera traseira será utilizada)")
-    # Define constraints para usar a câmera traseira (facingMode: environment)
-    media_constraints = {"video": {"facingMode": {"exact": "environment"}}, "audio": False}
+    st.write("Clique em 'Iniciar Câmera' para ativar a câmera e em 'Capturar Imagem' para tirar uma foto. (Apenas a câmera traseira será utilizada)")
+    # Atualização nas restrições: utiliza uma abordagem menos rígida para o parâmetro facingMode.
+    media_constraints = {"video": {"facingMode": "environment"}, "audio": False}
     webrtc_ctx = webrtc_streamer(key="camera", video_transformer_factory=VideoTransformer,
                                  media_stream_constraints=media_constraints)
 
@@ -269,7 +261,7 @@ elif modo == "Captura pela Câmera":
             else:
                 st.warning("Nenhum frame capturado, tente novamente.")
 
-# ================== SEÇÃO ADICIONAL: DOWNLOAD DE IMAGENS DE TESTE (APENAS UM BOTÃO) ==================
+# ================== SEÇÃO ADICIONAL: DOWNLOAD DE IMAGENS DE TESTE ==================
 st.markdown("---")
 st.write("**Imagens de Teste**")
 
