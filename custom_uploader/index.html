@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      function uploadFile() {
+        const fileInput = document.getElementById("fileInput");
+        fileInput.addEventListener("change", function(e) {
+          const file = e.target.files[0];
+          const reader = new FileReader();
+          reader.onload = function() {
+            // Envia o conteúdo base64 para o Streamlit
+            Streamlit.setComponentValue(reader.result);
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+      window.addEventListener("DOMContentLoaded", uploadFile);
+    </script>
+  </head>
+  <body style="background-color:#1a1a1a; color:#fff;">
+    <input type="file" id="fileInput" accept="image/*" style="width:300px;" />
+  </body>
+</html>
