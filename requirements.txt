@@ -1,0 +1,7 @@
+streamlit
+streamlit-webrtc
+tensorflow
+opencv-python-headless
+Pillow
+numpy
+h5py
