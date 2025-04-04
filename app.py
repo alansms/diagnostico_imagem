@@ -18,6 +18,19 @@ st.set_page_config(
     layout="wide"
 )
 
+# ================== CSS PARA ESCONDER A ÁREA DE DRAG AND DROP ==================
+st.markdown("""
+<style>
+[data-testid="stFileUploadDropzone"] label {
+    display: none;
+}
+[data-testid="stFileUploadDropzone"] > div {
+    padding: 0 !important;
+    border: none !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # ================== CSS PERSONALIZADO (TEMA DARK COMPLETO) ==================
 st.markdown("""
 <style>
@@ -67,22 +80,6 @@ body {
     color: red !important;
     background-color: var(--primary-bg) !important;
     border: none;
-}
-
-/* File Uploader */
-[data-testid="stFileUploadDropzone"] {
-    max-width: 300px !important;
-    margin: 0 auto !important;
-    background-color: var(--secondary-bg) !important;
-    border: 2px dashed #444 !important;
-    border-radius: 12px !important;
-    padding: 20px !important;
-    font-size: 1rem;
-    text-align: center;
-    transition: background-color 0.3s ease;
-}
-[data-testid="stFileUploadDropzone"]:hover {
-    background-color: #333 !important;
 }
 
 /* Botões genéricos */
@@ -152,12 +149,15 @@ threshold = st.sidebar.slider(
 if "debug_logs" not in st.session_state:
     st.session_state["debug_logs"] = ""
 
+
 def debug_log(msg: str):
     st.session_state["debug_logs"] += msg + "\n"
+
 
 st.sidebar.header("Depurador (Terminal)")
 st.sidebar.text_area("Logs", st.session_state["debug_logs"], height=300)
 debug_log(f"Threshold definido: {threshold}")
+
 
 # ================== CARREGAMENTO DO MODELO ==================
 @st.cache_resource(show_spinner=False)
@@ -167,7 +167,9 @@ def load_model():
     debug_log("Modelo carregado com sucesso!")
     return model_
 
+
 model = load_model()
+
 
 # ================== FUNÇÃO DE PRÉ-PROCESSAMENTO ==================
 def preprocess_image(img, target_size=(180, 180)):
@@ -182,6 +184,7 @@ def preprocess_image(img, target_size=(180, 180)):
     debug_log("Imagem pré-processada e normalizada.")
     return img_array
 
+
 # ================== CLASSE PARA CAPTURA DE CÂMERA ==================
 class VideoTransformer(VideoTransformerBase):
     def __init__(self):
@@ -192,6 +195,7 @@ class VideoTransformer(VideoTransformerBase):
         self.frame = img
         return img
 
+
 # ================== LAYOUT PRINCIPAL ==================
 st.title("Diagnóstico de Pneumonia por Radiografia")
 st.write("Escolha o modo de entrada para a imagem:")
@@ -200,7 +204,9 @@ modo = st.radio("Selecione o método de entrada:", ("Upload de Imagem", "Captura
 
 if modo == "Upload de Imagem":
     st.write("Faça upload de uma imagem de radiografia para análise.")
-    uploaded_file = st.file_uploader("Escolha uma imagem (jpg, jpeg, png)", type=["jpg", "jpeg", "png"])
+    # Componente padrão, mas com drag and drop escondido pelo CSS
+    uploaded_file = st.file_uploader("Escolha uma imagem (jpg, jpeg, png)", type=["jpg", "jpeg", "png"],
+                                     label_visibility="collapsed")
 
     if uploaded_file is not None:
         try:
@@ -209,50 +215,40 @@ if modo == "Upload de Imagem":
             debug_log("Imagem carregada com sucesso via PIL (upload).")
             st.image(img, caption="Imagem Carregada", width=400)
             debug_log("Imagem exibida ao usuário (upload).")
-
             processed_img = preprocess_image(img)
             debug_log("Imagem pré-processada com sucesso (upload).")
-
             with st.spinner("Realizando a predição..."):
                 debug_log("Enviando imagem (upload) para o modelo...")
                 prediction = model.predict(processed_img)
                 debug_log(f"Resultado bruto da predição (upload): {prediction}")
-
             probability = float(prediction[0][0])
             result = "PNEUMONIA" if probability > threshold else "NORMAL"
             st.write("**Resultado da análise:**", result)
             st.write("**Probabilidade:**", probability)
             debug_log(f"Classificação final (upload): {result} (Threshold: {threshold})")
-
         except Exception as e:
             st.error("Erro ao carregar ou processar a imagem (upload).")
             debug_log(f"Erro durante o processamento (upload): {str(e)}")
 
 elif modo == "Captura pela Câmera":
-    st.write("Clique em 'Iniciar Câmera' para ativar a câmera e em 'Capturar Imagem' para tirar uma foto. (Apenas a câmera traseira será utilizada)")
-    # Atualização nas restrições: utiliza uma abordagem menos rígida para o parâmetro facingMode.
+    st.write(
+        "Clique em 'Iniciar Câmera' para ativar a câmera e em 'Capturar Imagem' para tirar uma foto. (Apenas a câmera traseira será utilizada)")
     media_constraints = {"video": {"facingMode": "environment"}, "audio": False}
     webrtc_ctx = webrtc_streamer(key="camera", video_transformer_factory=VideoTransformer,
                                  media_stream_constraints=media_constraints)
-
     if webrtc_ctx.video_transformer:
         if st.button("Capturar Imagem"):
             captured_frame = webrtc_ctx.video_transformer.frame
             if captured_frame is not None:
-                # Converte BGR para RGB
                 captured_rgb = cv2.cvtColor(captured_frame, cv2.COLOR_BGR2RGB)
                 st.image(captured_rgb, caption="Imagem Capturada", use_container_width=True)
                 debug_log("Imagem capturada da câmera exibida.")
-
-                # Converte para PIL e processa a imagem
                 pil_img = Image.fromarray(captured_rgb)
                 processed_img = preprocess_image(pil_img)
-
                 with st.spinner("Realizando a predição..."):
                     debug_log("Enviando imagem (câmera) para o modelo...")
                     prediction = model.predict(processed_img)
                     debug_log(f"Resultado bruto da predição (câmera): {prediction}")
-
                 probability = float(prediction[0][0])
                 result = "PNEUMONIA" if probability > threshold else "NORMAL"
                 st.write("**Resultado da análise:**", result)
@@ -267,7 +263,6 @@ st.write("**Imagens de Teste**")
 
 images_dir = "extracted_images"  # Diretório com as imagens de teste
 if os.path.isdir(images_dir):
-    # Cria um arquivo ZIP na memória
     image_files = sorted(os.listdir(images_dir))
     with io.BytesIO() as buffer:
         with zipfile.ZipFile(buffer, "w") as zf:
@@ -276,7 +271,6 @@ if os.path.isdir(images_dir):
                 if os.path.isfile(file_path):
                     zf.write(file_path, arcname=image_name)
         zip_data = buffer.getvalue()
-
     st.download_button(
         label="Download Imagens (ZIP)",
         data=zip_data,
